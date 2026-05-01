@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Abtrace – Recall Mapping</title>
+  <link href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap" rel="stylesheet"/>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Lato', sans-serif; background: #fafafa; color: #1a1a1a; padding: 2rem 1rem; }
+    .container { max-width: 960px; margin: 0 auto; }
+    input[type="text"], input[type="date"], select {
+      width: 100%; padding: 6px 8px; font-size: 12px; font-family: 'Lato', sans-serif;
+      border: 1px solid #ccc; border-radius: 4px; background: #fff; color: #1a1a1a;
+    }
+    input[type="checkbox"], input[type="radio"] { cursor: pointer; }
+    button { font-family: 'Lato', sans-serif; cursor: pointer; }
+    table { border-collapse: collapse; }
+    @media print {
+      button { display: none !important; }
+      .no-print { display: none !important; }
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <div id="root"></div>
+</div>
+<script type="text/babel">
+
+const BRAND = {
+  red: "#993135", darkTeal: "#044855", assetTeal: "#004363",
+  assetGold: "#FFC859", assetRed: "#C3424C", assetPurple: "#5979C2",
+  assetGray: "#393E40", black: "#000000", cream1: "#E1D5C7",
+};
+
+const SECTIONS = [
+  {
+    id: "A", label: "Part A – Questionnaire recalls",
+    accentColor: BRAND.assetTeal, lightBg: "#EEF6FA",
+    rows: [
+      { id: "A1", name: "Smoking Status", condition: "All QOF/CQC areas" },
+      { id: "A2", name: "ACT Score (Adult)", condition: "Asthma" },
+      { id: "A3", name: "ACT Score (Child)", condition: "Asthma" },
+      { id: "A4", name: "COPD CAT Score / MRC", condition: "COPD" },
+      { id: "A5", name: "BP", condition: "HTN, Stroke, CHD, CKD, DM, CQC" },
+      { id: "A6", name: "BMI", condition: "All rules requiring BMI monitoring" },
+      { id: "A7", name: "AUDIT-C", condition: "Alcohol intake monitoring" },
+      { id: "A8", name: "Statin Offer", condition: "Primary & secondary prevention" },
+      { id: "A9", name: "COC / Contraceptive Pill Review", condition: "CQC" },
+      { id: "A10", name: "HRT", condition: "Women's health" },
+      { id: "A11", name: "Flu Vaccine Preferences / Decline", condition: "Influenza vaccination" },
+      { id: "A12", name: "COVID / RSV Decline", condition: "Vaccination" },
+      { id: "A13", name: "Physical Activity", condition: "NHS Health Checks" },
+    ],
+    columns: [
+      { key: "happy", label: "Happy to gather?", type: "check" },
+      { key: "exclusions", label: "Specific exclusions", type: "text" },
+      { key: "notes", label: "Notes / triggers", type: "text" },
+    ]
+  },
+  {
+    id: "B", label: "Part B – Blood test & pre-requisite recalls",
+    accentColor: BRAND.darkTeal, lightBg: "#E8F4F3",
+    rows: [
+      { id: "B1", name: "Blood tests – LTCs (AF, HTN, CHD, HF, STIA, CHOL, NDH, Diabetes, GDM)", condition: "Long term conditions" },
+      { id: "B2", name: "Blood tests – High risk drug monitoring (DOAC, DMARDs etc.)", condition: "HRDM" },
+      { id: "B3", name: "Blood tests – Interim / routine medication monitoring", condition: "Routine monitoring" },
+      { id: "B4", name: "Foot Checks", condition: "Diabetes" },
+      { id: "B5", name: "Urine ACR", condition: "CKD, Diabetes" },
+      { id: "B6", name: "ECGs", condition: "Medication monitoring (Amiodarone)" },
+      { id: "B7", name: "INR Monitoring", condition: "Warfarin" },
+    ],
+    columns: [
+      { key: "patientGroup", label: "Patient group", type: "text" },
+      { key: "slotLength", label: "Slot length", type: "text" },
+      { key: "existingApptType", label: "Existing appt type?", type: "text" },
+      { key: "whoCompletes", label: "Who books?", type: "select", options: ["GP","Nurse","Pharmacist","HCA","Any clinician"] },
+      { key: "exclusions", label: "Specific exclusions", type: "text" },
+      { key: "pending", label: "Pending / blocker", type: "text" },
+    ]
+  },
+  {
+    id: "C", label: "Part C – LTC reviews & clinical interventions",
+    accentColor: BRAND.red, lightBg: "#F9ECED",
+    rows: [
+      { id: "C1", name: "Asthma Annual Review (Adult)", condition: "Asthma" },
+      { id: "C2", name: "Asthma Annual Review (Child)", condition: "Asthma" },
+      { id: "C3", name: "COPD Review", condition: "COPD" },
+      { id: "C4", name: "Cardiovascular disease reviews", condition: "AF, HTN, CHD, HF, STIA" },
+      { id: "C5", name: "Diabetic Reviews", condition: "Diabetes" },
+      { id: "C6", name: "Medication Review / Prescribing Review / DOAC Reviews / High Risk Drug Medication Reviews", condition: "All eligible patients" },
+      { id: "C7", name: "Dementia Reviews", condition: "Dementia" },
+      { id: "C8", name: "Mental Health Reviews (SMI)", condition: "SMI" },
+      { id: "C9", name: "Out of Target Clinical Indicators (HbA1c, LDL, BP)", condition: "Diabetes, HYP, CHD" },
+      { id: "C10", name: "Obesity / Weight Management Review & Referral", condition: "NHS Health Checks" },
+      { id: "C11", name: "HRT Reviews", condition: "Women's health" },
+      { id: "C12", name: "LD Reviews", condition: "Learning disabilities" },
+      { id: "C13", name: "ADHD Monitoring", condition: "ADHD" },
+    ],
+    columns: [
+      { key: "recallType", label: "Recall type", type: "select", options: ["Appt booking link","Educational recall","Questionnaire first","List / surface only"] },
+      { key: "prerequisite", label: "Pre-requisite first?", type: "text" },
+      { key: "criteria", label: "Trigger criteria / threshold", type: "text" },
+      { key: "whoCompletes", label: "Who books?", type: "select", options: ["GP","Nurse","Pharmacist","HCA","Any clinician"] },
+      { key: "slotLength", label: "Slot length", type: "text" },
+      { key: "existingApptType", label: "Existing appt type?", type: "text" },
+      { key: "exclusions", label: "Specific exclusions", type: "text" },
+      { key: "pending", label: "Pending / blocker", type: "text" },
+    ]
+  },
+  {
+    id: "D", label: "Part D – Educational recalls",
+    accentColor: BRAND.assetPurple, lightBg: "#F0F2FA",
+    rows: [
+      { id: "D1", name: "Asthma good control (ACT ≥20)", condition: "Asthma" },
+      { id: "D2", name: "BP submitted – within target", condition: "HTN, CVD" },
+      { id: "D3", name: "SGLT2i educational recall", condition: "Diabetes, HF, CKD" },
+      { id: "D4", name: "Pregnancy Prevention Programme (PPP) for Teratogenic Medications (Valproate, Topiramate)", condition: "Relevant prescribing" },
+    ],
+    columns: [
+      { key: "trigger", label: "Trigger condition", type: "text" },
+      { key: "content", label: "Material / message to send", type: "text" },
+      { key: "exclusions", label: "Specific exclusions", type: "text" },
+      { key: "pending", label: "Pending / blocker", type: "text" },
+    ]
+  },
+  {
+    id: "E", label: "Part E – Screening & vaccinations",
+    accentColor: "#3B6D11", lightBg: "#EFF6E4",
+    rows: [
+      { id: "E1", name: "Cervical Screening", condition: "All eligible females" },
+      { id: "E2", name: "NHS Health Checks", condition: "45–74 age group" },
+      { id: "E3", name: "Influenza Vaccination", condition: "All eligible patients" },
+      { id: "E4", name: "COVID Vaccinations", condition: "All eligible patients" },
+      { id: "E5", name: "RSV Vaccination", condition: "All eligible patients" },
+      { id: "E6", name: "Childhood Immunisations", condition: "Infants / children schedule" },
+      { id: "E7", name: "Pneumococcal Vaccination", condition: "All eligible patients" },
+      { id: "E8", name: "Shingles Vaccination", condition: "All eligible patients" },
+    ],
+    columns: [
+      { key: "brokenByCriteria", label: "Break down by criteria?", type: "check" },
+      { key: "whoCompletes", label: "Who completes?", type: "select", options: ["GP","Nurse","HCA","Any clinician","Admin invite only"] },
+      { key: "apptType", label: "Invite type", type: "select", options: ["Booking link","Invite / letter only","Both"] },
+      { key: "slotLength", label: "Slot length", type: "text" },
+      { key: "exclusions", label: "Specific exclusions", type: "text" },
+      { key: "notes", label: "Notes", type: "text" },
+    ]
+  },
+  {
+    id: "F", label: "Part F – Local LES / LCS",
+    accentColor: BRAND.assetGray, lightBg: "#F2F3F3",
+    rows: [
+      { id: "F1", name: "NWL Care Model", condition: "NWL ICB" },
+      { id: "F2", name: "NCL Care Model", condition: "NCL ICB" },
+      { id: "F3", name: "Other local LES / LCS", condition: "Local agreement" },
+    ],
+    columns: [
+      { key: "active", label: "Active / in scope?", type: "check" },
+      { key: "recallType", label: "Recall type", type: "select", options: ["Appt booking link","Educational recall","Questionnaire first","List / surface only"] },
+      { key: "patientGroup", label: "Patient group / criteria", type: "text" },
+      { key: "whoCompletes", label: "Who books?", type: "select", options: ["GP","Nurse","Pharmacist","HCA","Any clinician"] },
+      { key: "slotLength", label: "Slot length", type: "text" },
+      { key: "exclusions", label: "Specific exclusions", type: "text" },
+      { key: "notes", label: "Notes / SNOMED codes", type: "text" },
+    ]
+  }
+];
+
+const GLOBAL_EXCLUSIONS = [
+  "Care Home","Residential Home Patients","Housebound Patients",
+  "Special Allocations Scheme (SAS)","Learning Disability","Dementia",
+];
+const INVITE_WINDOWS = ["3 months before due","2 months before due","1 month before due","2 weeks before due"];
+
+function App() {
+  const [data, setData] = React.useState({});
+  const [globalExclusions, setGlobalExclusions] = React.useState(
+    Object.fromEntries(GLOBAL_EXCLUSIONS.map(e => [e, e === "Care Home"]))
+  );
+  const [birthMonthOnly, setBirthMonthOnly] = React.useState(false);
+  const [precedingMonthToo, setPrecedingMonthToo] = React.useState(false);
+  const [inviteWindow, setInviteWindow] = React.useState("");
+  const [openSections, setOpenSections] = React.useState({ A:true,B:false,C:false,D:false,E:false,F:false });
+  const [practiceInfo, setPracticeInfo] = React.useState({ name:"", date:"" });
+
+  const toggle = id => setOpenSections(s => ({ ...s, [id]: !s[id] }));
+  const set = (rowId, colKey, val) => setData(d => ({ ...d, [`${rowId}-${colKey}`]: val }));
+  const get = (rowId, colKey) => data[`${rowId}-${colKey}`] ?? "";
+
+  const progress = () => {
+    let total = 0, done = 0;
+    SECTIONS.forEach(s => s.rows.forEach(r => s.columns.forEach(c => {
+      total++;
+      const v = get(r.id, c.key);
+      if (v === true || (typeof v === "string" && v.trim())) done++;
+    })));
+    return total === 0 ? 0 : Math.round((done / total) * 100);
+  };
+
+  const pct = progress();
+  const inp = { width:"100%", fontSize:12, fontFamily:"Lato,sans-serif", padding:"5px 7px", border:"1px solid #ccc", borderRadius:4, background:"#fff", color:"#1a1a1a" };
+
+  return (
+    <div style={{ fontFamily:"Lato,sans-serif", color:BRAND.black, paddingBottom:"2rem" }}>
+
+      {/* Header */}
+      <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:20, flexWrap:"wrap", gap:12 }}>
+        <div style={{ display:"flex", alignItems:"center", gap:12 }}>
+          <div style={{ border:`1.5px solid ${BRAND.red}`, borderRadius:6, padding:"4px 10px", display:"inline-flex", alignItems:"center", gap:2 }}>
+            <span style={{ fontWeight:300, fontSize:15, color:BRAND.black, letterSpacing:1 }}>AB</span>
+            <span style={{ fontWeight:700, fontSize:15, color:BRAND.red, letterSpacing:1 }}>TRACE</span>
+          </div>
+          <div>
+            <div style={{ fontSize:16, fontWeight:700, color:BRAND.darkTeal, letterSpacing:0.3 }}>RECALL MAPPING</div>
+            <div style={{ fontSize:11, color:BRAND.assetGray, letterSpacing:1, textTransform:"uppercase" }}>Let's set up your workflow!</div>
+          </div>
+        </div>
+        <button onClick={() => window.print()} style={{ padding:"8px 20px", background:BRAND.red, color:"#fff", border:"none", borderRadius:6, fontSize:13, fontWeight:700, letterSpacing:0.5 }}>
+          🖨 Print / Save as PDF
+        </button>
+      </div>
+
+      {/* Practice info */}
+      <div style={{ display:"flex", gap:12, marginBottom:20, flexWrap:"wrap" }}>
+        <div style={{ flex:1, minWidth:180 }}>
+          <label style={{ fontSize:11, color:BRAND.assetGray, display:"block", marginBottom:4, textTransform:"uppercase", letterSpacing:0.5 }}>Practice name</label>
+          <input value={practiceInfo.name} onChange={e => setPracticeInfo(p=>({...p,name:e.target.value}))} placeholder="e.g. Elm Tree Surgery" style={inp} />
+        </div>
+        <div style={{ flex:1, minWidth:160 }}>
+          <label style={{ fontSize:11, color:BRAND.assetGray, display:"block", marginBottom:4, textTransform:"uppercase", letterSpacing:0.5 }}>Date completed</label>
+          <input type="date" value={practiceInfo.date} onChange={e => setPracticeInfo(p=>({...p,date:e.target.value}))} style={inp} />
+        </div>
+      </div>
+
+      {/* Global exclusions */}
+      <div style={{ background:"#F5F0EB", border:`0.5px solid ${BRAND.cream1}`, borderRadius:10, padding:"1rem 1.25rem", marginBottom:16 }}>
+        <div style={{ fontSize:12, fontWeight:700, color:BRAND.darkTeal, marginBottom:10, textTransform:"uppercase", letterSpacing:0.5 }}>Global exclusions</div>
+        <div style={{ fontSize:11, color:BRAND.assetGray, marginBottom:10 }}>These exclusions apply across all recalls unless overridden per row below.</div>
+        <div style={{ display:"flex", gap:12, flexWrap:"wrap" }}>
+          {GLOBAL_EXCLUSIONS.map(ex => (
+            <label key={ex} style={{ display:"flex", alignItems:"center", gap:6, fontSize:13, cursor:"pointer" }}>
+              <input type="checkbox" checked={!!globalExclusions[ex]} onChange={e => setGlobalExclusions(g=>({...g,[ex]:e.target.checked}))} />
+              {ex}
+            </label>
+          ))}
+        </div>
+      </div>
+
+      {/* Invite timing */}
+      <div style={{ background:"#F5F0EB", border:`0.5px solid ${BRAND.cream1}`, borderRadius:10, padding:"1rem 1.25rem", marginBottom:20 }}>
+        <div style={{ fontSize:12, fontWeight:700, color:BRAND.darkTeal, marginBottom:10, textTransform:"uppercase", letterSpacing:0.5 }}>Global invite timing settings</div>
+        <div style={{ marginBottom:14 }}>
+          <div style={{ fontSize:13, fontWeight:500, marginBottom:8 }}>Routine annual monitoring — how soon before due should patients start receiving invites?</div>
+          <div style={{ display:"flex", gap:10, flexWrap:"wrap" }}>
+            {INVITE_WINDOWS.map(w => (
+              <label key={w} style={{ display:"flex", alignItems:"center", gap:6, fontSize:13, cursor:"pointer" }}>
+                <input type="radio" name="inviteWindow" value={w} checked={inviteWindow===w} onChange={()=>setInviteWindow(w)} /> {w}
+              </label>
+            ))}
+          </div>
+        </div>
+        <div style={{ borderTop:`0.5px solid ${BRAND.cream1}`, paddingTop:12 }}>
+          <div style={{ fontSize:13, fontWeight:500, marginBottom:8 }}>Birth month scheduling</div>
+          <label style={{ display:"flex", alignItems:"center", gap:8, fontSize:13, cursor:"pointer", marginBottom:8 }}>
+            <input type="checkbox" checked={birthMonthOnly} onChange={e=>{ setBirthMonthOnly(e.target.checked); if(!e.target.checked) setPrecedingMonthToo(false); }} />
+            Only invite patients during their birth month
+          </label>
+          {birthMonthOnly && (
+            <label style={{ display:"flex", alignItems:"center", gap:8, fontSize:13, cursor:"pointer", marginLeft:22 }}>
+              <input type="checkbox" checked={precedingMonthToo} onChange={e=>setPrecedingMonthToo(e.target.checked)} />
+              Also include the month preceding their birth month
+            </label>
+          )}
+        </div>
+      </div>
+
+      {/* Progress */}
+      <div style={{ marginBottom:20 }}>
+        <div style={{ display:"flex", justifyContent:"space-between", fontSize:12, color:BRAND.assetGray, marginBottom:6 }}>
+          <span>Overall completion</span>
+          <span style={{ fontWeight:700, color:BRAND.red }}>{pct}%</span>
+        </div>
+        <div style={{ height:6, background:"#E8E0D8", borderRadius:99, overflow:"hidden" }}>
+          <div style={{ height:"100%", width:`${pct}%`, background:BRAND.red, borderRadius:99, transition:"width 0.3s" }} />
+        </div>
+      </div>
+
+      {/* Sections */}
+      {SECTIONS.map(sec => (
+        <div key={sec.id} style={{ marginBottom:12, border:`1px solid ${sec.accentColor}33`, borderRadius:10, overflow:"hidden" }}>
+          <button onClick={()=>toggle(sec.id)} style={{ width:"100%", textAlign:"left", background:sec.lightBg, border:"none", padding:"12px 16px", cursor:"pointer", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+            <span style={{ fontSize:13, fontWeight:700, color:sec.accentColor, textTransform:"uppercase", letterSpacing:0.5 }}>{sec.label}</span>
+            <span style={{ fontSize:11, color:sec.accentColor }}>{openSections[sec.id] ? "▲ collapse" : "▼ expand"}</span>
+          </button>
+          {openSections[sec.id] && (
+            <div style={{ overflowX:"auto" }}>
+              <table style={{ width:"100%", borderCollapse:"collapse", minWidth:680 }}>
+                <thead>
+                  <tr style={{ background:sec.lightBg }}>
+                    <th style={{ textAlign:"left", padding:"8px 12px", fontSize:11, fontWeight:700, color:sec.accentColor, textTransform:"uppercase", letterSpacing:0.4, borderBottom:`1px solid ${sec.accentColor}33`, minWidth:160 }}>Recall / task</th>
+                    <th style={{ textAlign:"left", padding:"8px 12px", fontSize:11, fontWeight:700, color:sec.accentColor, textTransform:"uppercase", letterSpacing:0.4, borderBottom:`1px solid ${sec.accentColor}33`, minWidth:120 }}>Condition / area</th>
+                    {sec.columns.map(c => (
+                      <th key={c.key} style={{ textAlign:"left", padding:"8px 12px", fontSize:11, fontWeight:700, color:sec.accentColor, textTransform:"uppercase", letterSpacing:0.4, borderBottom:`1px solid ${sec.accentColor}33`, minWidth:c.type==="check"?60:120 }}>{c.label}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {sec.rows.map((row,ri) => (
+                    <tr key={row.id} style={{ background: ri%2===0 ? "#ffffff" : sec.lightBg+"88" }}>
+                      <td style={{ padding:"8px 12px", fontSize:12, fontWeight:500, borderBottom:`0.5px solid ${sec.accentColor}22`, verticalAlign:"top" }}>{row.name}</td>
+                      <td style={{ padding:"8px 12px", fontSize:12, color:BRAND.assetGray, borderBottom:`0.5px solid ${sec.accentColor}22`, verticalAlign:"top" }}>{row.condition}</td>
+                      {sec.columns.map(col => (
+                        <td key={col.key} style={{ padding:"8px 12px", borderBottom:`0.5px solid ${sec.accentColor}22`, verticalAlign:"top" }}>
+                          {col.type==="check" && <input type="checkbox" checked={!!get(row.id,col.key)} onChange={e=>set(row.id,col.key,e.target.checked)} />}
+                          {col.type==="text" && <input value={get(row.id,col.key)} onChange={e=>set(row.id,col.key,e.target.value)} placeholder="—" style={inp} />}
+                          {col.type==="select" && (
+                            <select value={get(row.id,col.key)} onChange={e=>set(row.id,col.key,e.target.value)} style={inp}>
+                              <option value="">Select…</option>
+                              {col.options.map(o=><option key={o} value={o}>{o}</option>)}
+                            </select>
+                          )}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      ))}
+
+      {/* Pre-build checklist */}
+      <div style={{ marginTop:20, padding:"16px 20px", background:BRAND.darkTeal, borderRadius:10 }}>
+        <div style={{ fontSize:12, fontWeight:700, color:"#ffffff", textTransform:"uppercase", letterSpacing:0.5, marginBottom:12 }}>Before build can start — checklist</div>
+        {[
+          { l:"A", t:"For each recall chosen above, visit Rules Management and enable/disable the rules that fulfil the relevant monitoring — e.g. patient on Hypertension register should have U&Es measured every financial year." },
+          { l:"B", t:"Check that all slot types mentioned above exist in your EMIS / SystmOne. They do not need to be named specifically, but at least a slot with the correct timing associated to the correct member of staff must exist." },
+          { l:"C", t:"Confirm any local LES / LCS that should be taken into account (see Part F above)." },
+          { l:"D", t:"If specific codes are used for completion of reviews or tasks, copy these into the Notes field next to the relevant task above — e.g. the Chronic Disease Management SNOMED code used for completion of CVD reviews." },
+        ].map(item => (
+          <div key={item.l} style={{ display:"flex", gap:12, marginBottom:10 }}>
+            <div style={{ minWidth:22, height:22, borderRadius:"50%", background:BRAND.red, display:"flex", alignItems:"center", justifyContent:"center", fontSize:11, fontWeight:700, color:"#fff", flexShrink:0 }}>{item.l}</div>
+            <p style={{ fontSize:13, color:"#D4E8E6", margin:0, lineHeight:1.6 }}>{item.t}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+const root = ReactDOM.createRoot(document.getElementById("root"));
+root.render(<App />);
+</script>
+</body>
+</html>
